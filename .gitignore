@@ -1,0 +1,10 @@
+*
+!*.c
+parse.tab.c
+lex.yy.c
+!*.h
+parse.tab.h
+!*.l
+!*.y
+!Makefile
+!.gitignore
