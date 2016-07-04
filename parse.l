@@ -11,9 +11,9 @@ int yywrap(void)
 %}
 INTEGER "0"|(-?[1-9][0-9]*)
 FLOAT -?("0."|([1-9][0-9]*\.))[0-9]*
-STRING \"[A-Za-z0-9]*\"
+STRING \"[^\"]*\"
 %%
-"Metasequoia"|"Document"|"Format"|"Text"|"Ver1.0" {
+"Metasequoia Document"|"Format Text Ver 1.0" {
     //Read skip the header string
 }
 
@@ -74,9 +74,6 @@ STRING \"[A-Za-z0-9]*\"
     return VAL_STRING;
 }
 
-[ \t] {
-}
-\n {
-    return EOL;
+[ \t\n] {
 }
 %%

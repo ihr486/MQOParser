@@ -25,13 +25,9 @@ int yylex(void);
 %token TOKEN_VERTEX TOKEN_FACE TOKEN_V TOKEN_M TOKEN_UV TOKEN_PERS
 %token LEFTPAR RIGHTPAR LEFTBR RIGHTBR
 %token VAL_LONG VAL_FLOAT VAL_STRING
-%token EOL
 
 %%
 
-val_real : VAL_LONG
-        | VAL_FLOAT
-        ;
 input   : blocks TOKEN_EOF
         ;
 blocks  :
@@ -126,13 +122,14 @@ backimage_record : TOKEN_PERS VAL_STRING val_real val_real val_real val_real EOL
 material_record : VAL_STRING material_fields EOL
         ;
 material_fields :
-        | col_field
+        | material_fields material_field_item
+        ;
+material_field_item : col_field
         | dif_field
         | amb_field
         | emi_field
         | spc_field
         | power_field
-        | material_fields material_fields
         ;
 col_field : TOKEN_COL LEFTPAR val_real val_real val_real val_real RIGHTPAR
         ;
@@ -188,6 +185,11 @@ mat_field : TOKEN_M LEFTPAR VAL_LONG RIGHTPAR
 uv4_field : TOKEN_UV LEFTPAR val_real val_real val_real val_real val_real val_real val_real val_real RIGHTPAR
         ;
 uv3_field : TOKEN_UV LEFTPAR val_real val_real val_real val_real val_real val_real RIGHTPAR
+        ;
+val_real : VAL_LONG
+        | VAL_FLOAT
+        ;
+EOL     :
         ;
 %%
 int main(int argc, const char *argv[])
