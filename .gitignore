@@ -1,10 +1,14 @@
 *
 !*.c
-parse.tab.c
-lex.yy.c
 !*.h
-parse.tab.h
 !*.l
 !*.y
+!*.cc
+!*.hh
+!*.yy
+parser.cc
+parser.hh
+stack.hh
+scanner.cc
 !Makefile
 !.gitignore

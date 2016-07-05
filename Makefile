@@ -1,9 +1,9 @@
-CSRCS := lex.yy.c parse.tab.c
-COBJS := $(CSRCS:%.c=%.o)
-OBJS := $(COBJS)
+CXXSRCS := scanner.cc parser.cc
+CXXOBJS := $(CXXSRCS:%.cc=%.o)
+OBJS := $(CXXOBJS)
 
-CC := gcc
-CFLAGS := -Wall -Wextra -std=c99 -O2 -DYYERROR_VERBOSE
+CXX := g++
+CXXFLAGS := -Wall -Wextra -std=c++11 -O2
 LDFLAGS :=
 FLEX := flex
 BISON := bison
@@ -14,22 +14,26 @@ BIN := parser
 
 all: $(BIN)
 
-check: $(CSRCS)
-	$(CC) -fsyntax-only $(CFLAGS) $^
+check: $(CXXSRCS)
+	$(CXX) -fsyntax-only $(CXXFLAGS) $^
 
 clean:
-	-@rm -vf lex.yy.c parse.tab.c parse.tab.h $(BIN) $(OBJS)
+	-@rm -vf scanner.cc parser.cc $(BIN) $(OBJS)
 
 $(BIN): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+%.o: %.cc
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-lex.yy.c: parse.l parse.tab.h
+scanner.o: parser.hh driver.hh
+
+parser.o: driver.hh
+
+parser.hh: parser.cc
+
+scanner.cc: scanner.l
 	$(FLEX) $<
 
-parse.tab.c: parse.y
-	$(BISON) -d $<
-
-parse.tab.h: parse.tab.c
+parser.cc: parser.yy
+	$(BISON) $<
