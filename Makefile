@@ -18,7 +18,7 @@ check: $(CXXSRCS)
 	$(CXX) -fsyntax-only $(CXXFLAGS) $^
 
 clean:
-	-@rm -vf scanner.cc parser.cc $(BIN) $(OBJS)
+	-@rm -vf scanner.cc parser.cc parser.hh stack.hh $(BIN) $(OBJS)
 
 $(BIN): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)

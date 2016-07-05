@@ -10,14 +10,45 @@
 {
 #define YY_NULLPTR nullptr
 #include <string>
+#include <array>
+#include <vector>
 class mqo_driver;
 
+struct vector2 {
+    float x, y;
+};
 struct vector3 {
     float x, y, z;
 };
 struct color3 {
     float r, g, b;
 };
+struct color4 {
+    float r, g, b, a;
+};
+typedef std::array<int, 3> index3;
+typedef std::array<int, 4> index4;
+typedef std::array<vector2, 3> texcoord3;
+typedef std::array<vector2, 4> texcoord4;
+struct light {
+    vector3 dir;
+    color3 color;
+};
+typedef std::vector<light> dirlight_vector;
+struct material {
+    color4 col;
+    float dif, amb, emi, spc, power;
+};
+typedef std::vector<material> material_vector;
+struct object {
+    int visible, locking, shading;
+    float facet;
+    color3 color;
+    int color_type;
+    int mirror;
+    int mirror_axis;
+};
+typedef std::vector<object> object_vector;
 }
 %code
 {
@@ -47,70 +78,51 @@ struct color3 {
 %type <int> visible_record locking_record shading_record color_type_record mirror_record mirror_axis_record mat_field
 %type <vector3> pos_record lookat_record dir_record vertex_record
 %type <color3> amb_record color_record
+%type <color4> col_field
+%type <index3> index3_field
+%type <index4> index4_field
+%type <texcoord3> uv3_field
+%type <texcoord4> uv4_field
+%type <dirlight_vector> dirlights_block dirlights_body
+%type <light> light_block light_body
+%type <material> material_record
+%type <object> object_block object_body
+%type <material_vector> material_block material_body
+%type <object_vector> object_blocks
 
 %%
 %start input;
 
-input   : blocks TOKEN_EOF
-        ;
-blocks  :
-        | blocks block
+//Start symbol
+input   : scene_block backimage_block material_block object_blocks TOKEN_EOF
         ;
 
-block   : scene_block
-        | backimage_block
-        | material_block
-        | object_block
-        ;
+//Top level blocks
 scene_block : TOKEN_SCENE LEFTBR scene_body RIGHTBR
         ;
 backimage_block : TOKEN_BACKIMAGE LEFTBR backimage_body RIGHTBR
         ;
-material_block : TOKEN_MATERIAL VAL_INT LEFTBR material_body RIGHTBR
+material_block : TOKEN_MATERIAL VAL_INT LEFTBR material_body RIGHTBR {$$ = std::move($4);}
         ;
-object_block : TOKEN_OBJECT VAL_STRING LEFTBR object_body RIGHTBR
+object_blocks:
+        | object_blocks object_block {$$.push_back(std::move($2));}
+        ;
+object_block : TOKEN_OBJECT VAL_STRING LEFTBR object_body RIGHTBR {$$ = std::move($4);}
         ;
 
-scene_body :
-        | scene_body scene_item
+//Definition of each top level block
+scene_body : pos_record lookat_record head_record pitch_record bank_record ortho_record zoom2_record zoom_pers_record amb_record dirlights_block
         ;
 backimage_body :
-        | backimage_body backimage_item
+        | backimage_body backimage_record
         ;
 material_body :
-        | material_body material_item
+        | material_body material_record {$$.push_back(std::move($2));}
         ;
-object_body :
-        | object_body object_item
-        ;
-
-scene_item : pos_record
-        | lookat_record
-        | head_record
-        | pitch_record
-        | bank_record
-        | ortho_record
-        | zoom2_record
-        | zoom_pers_record
-        | amb_record
-        | dirlights_block
-        ;
-backimage_item : backimage_record
-        ;
-material_item : material_record
-        ;
-object_item : visible_record
-        | locking_record
-        | shading_record
-        | facet_record
-        | color_record
-        | color_type_record
-        | mirror_record
-        | mirror_axis_record
-        | vertex_block
-        | face_block
+object_body : visible_record locking_record shading_record facet_record color_record color_type_record mirror_record mirror_axis_record vertex_block face_block {$$ = object{$1, $2, $3, $4, $5, $6, $7, $8};}
         ;
 
+//Content of Scene block
 pos_record : TOKEN_POS val_real val_real val_real {$$ = vector3{$2, $3, $4};}
         ;
 lookat_record : TOKEN_LOOKAT val_real val_real val_real {$$ = vector3{$2, $3, $4};}
@@ -129,36 +141,26 @@ zoom_pers_record : TOKEN_ZOOM_PERS val_real {$$ = $2;}
         ;
 amb_record : TOKEN_AMB val_real val_real val_real {$$ = color3{$2, $3, $4};}
         ;
-dirlights_block : TOKEN_DIRLIGHTS VAL_INT LEFTBR dirlights_body RIGHTBR
+dirlights_block : TOKEN_DIRLIGHTS VAL_INT LEFTBR dirlights_body RIGHTBR {$$ = std::move($4);}
         ;
 dirlights_body :
-        | dirlights_body light_block
+        | dirlights_body light_block {$$.push_back($2);}
         ;
-light_block : TOKEN_LIGHT LEFTBR light_body RIGHTBR
+light_block : TOKEN_LIGHT LEFTBR light_body RIGHTBR {$$ = std::move($3);}
         ;
-light_body :
-        | light_body light_item
-        ;
-light_item : dir_record
-        | color_record
+light_body : dir_record color_record {$$ = light{$1, $2};}
         ;
 dir_record : TOKEN_DIR val_real val_real val_real {$$ = vector3{$2, $3, $4};}
         ;
+
+//Content of Backimage block
 backimage_record : TOKEN_PERS VAL_STRING val_real val_real val_real val_real
         ;
-material_record : VAL_STRING material_fields
+
+//Content of Material block
+material_record : VAL_STRING col_field dif_field amb_field emi_field spc_field power_field {$$ = material{$2, $3, $4, $5, $6, $7};}
         ;
-material_fields :
-        | material_fields material_field_item
-        ;
-material_field_item : col_field
-        | dif_field
-        | amb_field
-        | emi_field
-        | spc_field
-        | power_field
-        ;
-col_field : TOKEN_COL LEFTPAR val_real val_real val_real val_real RIGHTPAR
+col_field : TOKEN_COL LEFTPAR val_real val_real val_real val_real RIGHTPAR {$$ = color4{$3, $4, $5, $6};}
         ;
 dif_field : TOKEN_DIF LEFTPAR val_real RIGHTPAR {$$ = $3;}
         ;
@@ -170,6 +172,8 @@ spc_field : TOKEN_SPC LEFTPAR val_real RIGHTPAR {$$ = $3;}
         ;
 power_field : TOKEN_POWER LEFTPAR val_real RIGHTPAR {$$ = $3;}
         ;
+
+//Content of Object block
 visible_record : TOKEN_VISIBLE VAL_INT {$$ = $2;}
         ;
 locking_record : TOKEN_LOCKING VAL_INT {$$ = $2;}
@@ -203,18 +207,20 @@ face_record : VAL_INT index4_field mat_field
         | VAL_INT index4_field mat_field uv4_field
         | VAL_INT index3_field mat_field uv3_field
         ;
-index4_field : TOKEN_V LEFTPAR VAL_INT VAL_INT VAL_INT VAL_INT RIGHTPAR
+index4_field : TOKEN_V LEFTPAR VAL_INT VAL_INT VAL_INT VAL_INT RIGHTPAR {$$ = {$3, $4, $5, $6};}
         ;
-index3_field : TOKEN_V LEFTPAR VAL_INT VAL_INT VAL_INT RIGHTPAR
+index3_field : TOKEN_V LEFTPAR VAL_INT VAL_INT VAL_INT RIGHTPAR {$$ = {$3, $4, $5};}
         ;
 mat_field : TOKEN_M LEFTPAR VAL_INT RIGHTPAR {$$ = $3;}
         ;
-uv4_field : TOKEN_UV LEFTPAR val_real val_real val_real val_real val_real val_real val_real val_real RIGHTPAR
+uv4_field : TOKEN_UV LEFTPAR val_real val_real val_real val_real val_real val_real val_real val_real RIGHTPAR {$$ = {vector2{$3, $4}, vector2{$5, $6}, vector2{$7, $8}, vector2{$9, $10}};}
         ;
-uv3_field : TOKEN_UV LEFTPAR val_real val_real val_real val_real val_real val_real RIGHTPAR
+uv3_field : TOKEN_UV LEFTPAR val_real val_real val_real val_real val_real val_real RIGHTPAR {$$ = {vector2{$3, $4}, vector2{$5, $6}, vector2{$7, $8}};}
         ;
-val_real : VAL_INT { $$ = $1; }
-        | VAL_FLOAT { $$ = $1; }
+
+//Miscellaneous
+val_real : VAL_INT {$$ = $1;}
+        | VAL_FLOAT {$$ = $1;}
         ;
 %%
 void yy::mqo_parser::error(const std::string& msg)
