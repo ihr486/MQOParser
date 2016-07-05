@@ -26,9 +26,7 @@ $(BIN): $(OBJS)
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-scanner.o: parser.hh driver.hh
-
-parser.o: driver.hh
+scanner.o: parser.hh
 
 parser.hh: parser.cc
 
