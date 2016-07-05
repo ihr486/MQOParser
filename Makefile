@@ -1,4 +1,4 @@
-CXXSRCS := scanner.cc parser.cc
+CXXSRCS := scanner.cc parser.cc main.cc
 CXXOBJS := $(CXXSRCS:%.cc=%.o)
 OBJS := $(CXXOBJS)
 
